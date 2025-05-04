@@ -1,5 +1,5 @@
 "use client";
-
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { useState } from "react";
 import {
   ChevronLeft,
@@ -52,6 +52,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import LogoutButton from '@/components/LogoutButton';
 
 export default function AdminPanel() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -69,11 +70,17 @@ export default function AdminPanel() {
   const { data: apiResponse, isLoading } = useQuery({
     queryKey: ["listings", currentPage],
     queryFn: async () => {
-      const response = await fetch("http://localhost:5000/api/v1/admin/listings", {
+
+      const token = localStorage.getItem("token"); // ✅ Get token dynamically
+      if (!token) {
+        throw new Error("Authorization token not found");
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/listings`, {
         method: "GET",
         headers: {
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5ZWIyZDQzYS02YTIzLTQ0MmItYTIyMy1lNDZlYWMwYjc1YTAiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDYwODExNTh9.Z5hHZB5HVEx7X-PBEjf-_80CtlbzAKksjLlfHU7DhSg",
+            `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
@@ -125,13 +132,18 @@ export default function AdminPanel() {
   // Update status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const token = localStorage.getItem("token"); // ✅ Get token dynamically
+      if (!token) {
+        throw new Error("Authorization token not found");
+      }
+  
       const response = await fetch(
-        `http://localhost:5000/api/v1/admin/listings/${id}/status`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/listings/${id}/status`,
         {
           method: "PUT",
           headers: {
             Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5ZWIyZDQzYS02YTIzLTQ0MmItYTIyMy1lNDZlYWMwYjc1YTAiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDYwODExNTh9.Z5hHZB5HVEx7X-PBEjf-_80CtlbzAKksjLlfHU7DhSg",
+              `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ status }),
@@ -189,6 +201,8 @@ export default function AdminPanel() {
   };
 
   return (
+    <ProtectedRoute>
+
     <div className="flex min-h-screen w-full flex-col">
       {/* Navbar */}
       <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
@@ -209,7 +223,7 @@ export default function AdminPanel() {
               <DropdownMenuItem>Profile</DropdownMenuItem>
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuItem> <LogoutButton /></DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -578,5 +592,7 @@ export default function AdminPanel() {
         </DialogContent>
       </Dialog>
     </div>
+    </ProtectedRoute>
+
   );
 }
