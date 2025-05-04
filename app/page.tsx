@@ -69,11 +69,11 @@ export default function AdminPanel() {
   const { data: apiResponse, isLoading } = useQuery({
     queryKey: ["listings", currentPage],
     queryFn: async () => {
-      const response = await fetch("http://localhost:5000/api/v1/listings", {
+      const response = await fetch("http://localhost:5000/api/v1/admin/listings", {
         method: "GET",
         headers: {
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NDExYjU2Zi1lNmIzLTRlZDktOTBkMi1lMDIwYTA4ZDg2ODIiLCJpYXQiOjE3Mzk5MDA3OTB9.-Y4QVCKMQ-O77h3wKtkCgqpgu1dH9L8_czbrqZ0pZ1U",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5ZWIyZDQzYS02YTIzLTQ0MmItYTIyMy1lNDZlYWMwYjc1YTAiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDYwODExNTh9.Z5hHZB5HVEx7X-PBEjf-_80CtlbzAKksjLlfHU7DhSg",
           "Content-Type": "application/json",
         },
       });
@@ -126,12 +126,12 @@ export default function AdminPanel() {
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const response = await fetch(
-        `http://localhost:5000/api/v1/listings/${id}/status`,
+        `http://localhost:5000/api/v1/admin/listings/${id}/status`,
         {
           method: "PUT",
           headers: {
             Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NDExYjU2Zi1lNmIzLTRlZDktOTBkMi1lMDIwYTA4ZDg2ODIiLCJpYXQiOjE3Mzk5MDA3OTB9.-Y4QVCKMQ-O77h3wKtkCgqpgu1dH9L8_czbrqZ0pZ1U",
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5ZWIyZDQzYS02YTIzLTQ0MmItYTIyMy1lNDZlYWMwYjc1YTAiLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NDYwODExNTh9.Z5hHZB5HVEx7X-PBEjf-_80CtlbzAKksjLlfHU7DhSg",
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ status }),
@@ -145,7 +145,9 @@ export default function AdminPanel() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["listings"] });
+      queryClient.invalidateQueries({ queryKey: ["listings", currentPage] });
+
+
     },
   });
 
@@ -302,6 +304,7 @@ export default function AdminPanel() {
                                   size="sm"
                                   className="h-8 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700"
                                   onClick={() => handleAccept(item.id)}
+                                  disabled={updateStatusMutation.isPending} 
                                 >
                                   Accept
                                 </Button>
@@ -310,6 +313,7 @@ export default function AdminPanel() {
                                   size="sm"
                                   className="h-8 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
                                   onClick={() => handleReject(item.id)}
+                                  disabled={updateStatusMutation.isPending} 
                                 >
                                   Reject
                                 </Button>
@@ -445,14 +449,14 @@ export default function AdminPanel() {
                   <div className="grid grid-cols-3 items-center gap-2">
                     <span className="font-medium">Bedrooms:</span>
                     <span className="col-span-2">
-                      {selectedItem.no_of_bedrooms.replace("_", " ")}
+                    {selectedItem.no_of_bedrooms? selectedItem.no_of_bedrooms.replace("_", " "): "N/A"}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
                     <span className="font-medium">Bathrooms:</span>
                     <span className="col-span-2">
-                      {selectedItem.no_of_bathrooms.replace("_", " ")}
+                    {selectedItem.no_of_bathrooms? selectedItem.no_of_bathrooms.replace("_", " "): "N/A"}
                     </span>
                   </div>
 
@@ -476,7 +480,7 @@ export default function AdminPanel() {
                   <div className="grid grid-cols-3 items-center gap-2">
                     <span className="font-medium">Payment Plan:</span>
                     <span className="col-span-2">
-                      {selectedItem.payment_plan.replace("_", " ")}
+                    {selectedItem.payment_plan? selectedItem.payment_plan.replace("_", " "): "N/A"}
                     </span>
                   </div>
 
