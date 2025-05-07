@@ -1,5 +1,5 @@
 "use client";
-
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { useState } from "react";
 import {
   ChevronLeft,
@@ -52,6 +52,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import LogoutButton from '@/components/LogoutButton';
 
 export default function AdminPanel() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -69,11 +70,17 @@ export default function AdminPanel() {
   const { data: apiResponse, isLoading } = useQuery({
     queryKey: ["listings", currentPage],
     queryFn: async () => {
-      const response = await fetch("http://localhost:5000/api/v1/listings", {
+
+      const token = localStorage.getItem("token"); // ✅ Get token dynamically
+      if (!token) {
+        throw new Error("Authorization token not found");
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/listings`, {
         method: "GET",
         headers: {
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NDExYjU2Zi1lNmIzLTRlZDktOTBkMi1lMDIwYTA4ZDg2ODIiLCJpYXQiOjE3Mzk5MDA3OTB9.-Y4QVCKMQ-O77h3wKtkCgqpgu1dH9L8_czbrqZ0pZ1U",
+            `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
@@ -125,13 +132,18 @@ export default function AdminPanel() {
   // Update status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const token = localStorage.getItem("token"); // ✅ Get token dynamically
+      if (!token) {
+        throw new Error("Authorization token not found");
+      }
+  
       const response = await fetch(
-        `http://localhost:5000/api/v1/listings/${id}/status`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/listings/${id}/status`,
         {
           method: "PUT",
           headers: {
             Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NDExYjU2Zi1lNmIzLTRlZDktOTBkMi1lMDIwYTA4ZDg2ODIiLCJpYXQiOjE3Mzk5MDA3OTB9.-Y4QVCKMQ-O77h3wKtkCgqpgu1dH9L8_czbrqZ0pZ1U",
+              `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ status }),
@@ -145,7 +157,9 @@ export default function AdminPanel() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["listings"] });
+      queryClient.invalidateQueries({ queryKey: ["listings", currentPage] });
+
+
     },
   });
 
@@ -187,6 +201,8 @@ export default function AdminPanel() {
   };
 
   return (
+    <ProtectedRoute>
+
     <div className="flex min-h-screen w-full flex-col">
       {/* Navbar */}
       <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
@@ -207,7 +223,7 @@ export default function AdminPanel() {
               <DropdownMenuItem>Profile</DropdownMenuItem>
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuItem> <LogoutButton /></DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -302,6 +318,7 @@ export default function AdminPanel() {
                                   size="sm"
                                   className="h-8 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700"
                                   onClick={() => handleAccept(item.id)}
+                                  disabled={updateStatusMutation.isPending} 
                                 >
                                   Accept
                                 </Button>
@@ -310,6 +327,7 @@ export default function AdminPanel() {
                                   size="sm"
                                   className="h-8 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
                                   onClick={() => handleReject(item.id)}
+                                  disabled={updateStatusMutation.isPending} 
                                 >
                                   Reject
                                 </Button>
@@ -445,14 +463,14 @@ export default function AdminPanel() {
                   <div className="grid grid-cols-3 items-center gap-2">
                     <span className="font-medium">Bedrooms:</span>
                     <span className="col-span-2">
-                      {selectedItem.no_of_bedrooms.replace("_", " ")}
+                    {selectedItem.no_of_bedrooms? selectedItem.no_of_bedrooms.replace("_", " "): "N/A"}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-3 items-center gap-2">
                     <span className="font-medium">Bathrooms:</span>
                     <span className="col-span-2">
-                      {selectedItem.no_of_bathrooms.replace("_", " ")}
+                    {selectedItem.no_of_bathrooms? selectedItem.no_of_bathrooms.replace("_", " "): "N/A"}
                     </span>
                   </div>
 
@@ -476,7 +494,7 @@ export default function AdminPanel() {
                   <div className="grid grid-cols-3 items-center gap-2">
                     <span className="font-medium">Payment Plan:</span>
                     <span className="col-span-2">
-                      {selectedItem.payment_plan.replace("_", " ")}
+                    {selectedItem.payment_plan? selectedItem.payment_plan.replace("_", " "): "N/A"}
                     </span>
                   </div>
 
@@ -574,5 +592,7 @@ export default function AdminPanel() {
         </DialogContent>
       </Dialog>
     </div>
+    </ProtectedRoute>
+
   );
 }
