@@ -7,25 +7,21 @@ interface Broker {
   id: string;
   name: string;
   email: string;
-  phone: string;
-  status: string;
-  createdAt: string;
+  w_number: string;
   updatedAt: string;
-}
-
-interface Pagination {
-  page: number;
-  page_size: number;
-  total: number;
-  total_pages: number;
+  country_code: string;
+  company: {
+    id: string;
+    name: string;
+  } | null; 
 }
 
 export default function BrokersPage() {
   const [brokers, setBrokers] = useState<Broker[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
+
+
 
   const fetchBrokers = async () => {
     try {
@@ -34,19 +30,16 @@ export default function BrokersPage() {
       const token = localStorage.getItem('token');
 
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1//brokers`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/brokers`,
         {
-          params: {
-            page,
-            page_size: pageSize,
-          },
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
 
-      setBrokers(response.data.data.brokers);
+      setBrokers(response.data.data.brokers || []);
+      console.log("Fetched Brokers:", response.data.data.brokers);
     } catch (err: any) {
       setError(
         err.response?.data?.message || err.message || 'Failed to fetch brokers'
@@ -55,10 +48,50 @@ export default function BrokersPage() {
       setLoading(false);
     }
   };
-
+ //break
+  // const fetchAllBrokers = async () => {
+  //   try {
+  //     setLoading(true);
+  //     setError('');
+  //     const token = localStorage.getItem('token');
+  //     const allBrokers: Broker[] = [];
+  //     let currentPage = 1;
+  //     let totalPages = 1;
+  
+  //     do {
+  //       const response = await axios.post(
+  //         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/brokers`,
+  //         {
+  //           page: currentPage,
+  //           page_size: 50, // You can increase this to reduce API calls
+  //         },
+  //         {
+  //           headers: {
+  //             Authorization: `Bearer ${token}`,
+  //           },
+  //         }
+  //       );
+  
+  //       const data = response.data.data;
+  //       allBrokers.push(...data.brokers);
+  //       totalPages = data.pagination.total_pages;
+  //       currentPage++;
+  //     } while (currentPage <= totalPages);
+  
+  //     setBrokers(allBrokers);
+  //   } catch (err: any) {
+  //     setError(
+  //       err.response?.data?.message || err.message || 'Failed to fetch brokers'
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  
   useEffect(() => {
     fetchBrokers();
-  }, [page]);
+  },[] );
+  
 
   return (
     <div className="p-6">
@@ -73,9 +106,10 @@ export default function BrokersPage() {
             <tr className="bg-gray-100">
               <th className="border p-2">Name</th>
               <th className="border p-2">Email</th>
+              <th className='border p-2'>Country code</th>
               <th className="border p-2">Phone</th>
-              <th className="border p-2">Status</th>
-              <th className="border p-2">Created At</th>
+              <th className="border p-2">Broker id</th>
+              <th className="border p-2">Company</th>
             </tr>
           </thead>
           <tbody>
@@ -83,32 +117,54 @@ export default function BrokersPage() {
               <tr key={broker.id}>
                 <td className="border p-2">{broker.name}</td>
                 <td className="border p-2">{broker.email}</td>
-                <td className="border p-2">{broker.phone}</td>
-                <td className="border p-2">{broker.status}</td>
-                <td className="border p-2">{new Date(broker.createdAt).toLocaleDateString()}</td>
+                <td className="border p-2">{broker.country_code}</td>
+                <td className="border p-2">{broker.w_number}</td>
+                <td className="border p-2">{broker.id}</td>
+                <td className="border p-2"> {broker.company?.name || 'N/A'}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        
       )}
+      <div className="flex justify-between mt-4 items-center">
+    {/* <div>
+      <button
+        onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+        disabled={page === 1}
+        className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+      >
+        Previous
+      </button>
+      <span className="mx-2">Page {page} of {totalPages}</span>
+      <button
+        onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+        disabled={page === totalPages}
+        className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+      >
+        Next
+      </button>
+    </div> */}
 
-      {/* Pagination */}
-      <div className="flex justify-between mt-4">
-        <button
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-          className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+    <div>
+      {/* <label>
+        Rows per page:{' '}
+        <select
+          value={pageSize}
+          onChange={(e) => {
+            setPageSize(Number(e.target.value));
+            setPage(1); // Reset to first page
+          }}
+          className="ml-2 px-2 py-1 border rounded"
         >
-          Previous
-        </button>
-        <span>Page {page}</span>
-        <button
-          onClick={() => setPage((p) => p + 1)}
-          className="px-4 py-2 bg-gray-300 rounded"
-        >
-          Next
-        </button>
-      </div>
+          <option value={5}>5</option>
+          <option value={10}>10</option>
+          <option value={20}>20</option>
+        </select>
+      </label> */}
+    </div>
+  </div>
+
     </div>
   );
 }
