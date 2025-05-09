@@ -1,6 +1,7 @@
 "use client";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useState } from "react";
+import { useRouter } from 'next/navigation';
 import {
   ChevronLeft,
   ChevronRight,
@@ -63,6 +64,7 @@ export default function AdminPanel() {
   const [currentPage, setCurrentPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState("All");
   const itemsPerPage = 5;
+  const router = useRouter();
 
   const queryClient = useQueryClient();
 
@@ -222,6 +224,7 @@ export default function AdminPanel() {
               <DropdownMenuSeparator />
               <DropdownMenuItem>Profile</DropdownMenuItem>
               <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/brokers')}>Brokers</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem> <LogoutButton /></DropdownMenuItem>
             </DropdownMenuContent>
