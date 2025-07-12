@@ -62,23 +62,45 @@ export default function AdminPanel() {
   );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [typeFilter, setTypeFilter] = useState("All");
-  const itemsPerPage = 5;
+  const [statusFilter, setStatusFilter] = useState("");
+  const itemsPerPage = 50;
+  const [paginationWindowStart, setPaginationWindowStart] = useState(1);
+  const paginationWindowSize = 10;
+
   const router = useRouter();
 
   const queryClient = useQueryClient();
 
+  const handlePageChange = (page: number) => {
+  setCurrentPage(page);
+
+  // If user clicks a page outside the current window range
+  if (page < paginationWindowStart) {
+    setPaginationWindowStart(Math.max(1, page - paginationWindowSize + 1));
+  } else if (page >= paginationWindowStart + paginationWindowSize) {
+    setPaginationWindowStart(page);
+  }
+};
+
   // Fetch listings query
   const { data: apiResponse, isLoading } = useQuery({
-    queryKey: ["listings", currentPage],
-    queryFn: async () => {
+    queryKey: ["listings", currentPage, statusFilter, searchTerm],
+        queryFn: async () => {
 
-      const token = localStorage.getItem("token"); // ✅ Get token dynamically
-      if (!token) {
-        throw new Error("Authorization token not found");
-      }
+          const token = localStorage.getItem("token"); // ✅ Get token dynamically
+          if (!token) {
+            throw new Error("Authorization token not found");
+          }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/listings`, {
+      const queryParams = new URLSearchParams({
+        page: currentPage.toString(),
+        page_size: itemsPerPage.toString(),
+        ...(statusFilter !== "All" && { admin_status: statusFilter }), // backend expects `admin_status`
+        ...(searchTerm && { search: searchTerm }),
+
+      });
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/listings?${queryParams.toString()}`, {
         method: "GET",
         headers: {
           Authorization:
@@ -100,7 +122,7 @@ export default function AdminPanel() {
     apiResponse?.data.listings.map((item) => ({
       id: item.listing.id,
       name: item.broker.name,
-      email: `${item.broker.name.toLowerCase().replace(" ", ".")}@example.com`, // Simulating email since it's not in the API
+      email: item.broker.email,
       phone: `${item.broker.country_code}${item.broker.w_number}`,
       status: item.listing.admin_status,
       created_at: item.listing.created_at,
@@ -182,25 +204,24 @@ export default function AdminPanel() {
   };
 
   // Filter data based on search term and type filter
-  const filteredData = listings.filter((item) => {
-    const matchesSearch =
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.status.toLowerCase().includes(searchTerm.toLowerCase());
+  // const filteredData = listings.filter((item) => {
+  //   const matchesSearch =
+  //     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     item.status.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesType = typeFilter === "All" || item.type === typeFilter;
+  //   // const matchesType = typeFilter === "All" || item.type === typeFilter;
 
-    return matchesSearch && matchesType;
-  });
+  //   return matchesSearch ;
+  // });
+
+  const filteredData = listings;
+
 
   // Calculate pagination
   const totalItems = apiResponse?.data.pagination.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+ 
 
   return (
     <ProtectedRoute>
@@ -245,7 +266,7 @@ export default function AdminPanel() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search by name, email, or status..."
+                placeholder="Search by name, email, or number...."
                 className="pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -253,15 +274,16 @@ export default function AdminPanel() {
             </div>
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Filter by type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="All">All Types</SelectItem>
-                  <SelectItem value="Customer">Customer</SelectItem>
-                  <SelectItem value="Partner">Partner</SelectItem>
-                  <SelectItem value="Vendor">Vendor</SelectItem>
+                  <SelectItem value="All">All Status</SelectItem>
+                  <SelectItem value="Approved">Approved</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Rejected">Rejected</SelectItem>
+                  <SelectItem value="Reported">Reported</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -277,6 +299,7 @@ export default function AdminPanel() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>S.No.</TableHead>
                     <TableHead>Broker Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone Number</TableHead>
@@ -289,8 +312,9 @@ export default function AdminPanel() {
                 </TableHeader>
                 <TableBody>
                   {filteredData.length > 0 ? (
-                    filteredData.map((item) => (
+                    listings.map((item, index) => (
                       <TableRow key={item.id}>
+                      <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
                         <TableCell className="font-medium">
                           {item.name}
                         </TableCell>
@@ -368,7 +392,7 @@ export default function AdminPanel() {
                 Showing {filteredData.length} of {totalItems} entries
               </div>
               <div className="flex items-center gap-1">
-                <Button
+                {/* <Button
                   variant="outline"
                   size="icon"
                   className="h-8 w-8"
@@ -377,8 +401,8 @@ export default function AdminPanel() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                   <span className="sr-only">Previous page</span>
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                </Button> */}
+                {/* {Array.from({ length: totalPages }, (_, i) => i + 1).map(
                   (page) => (
                     <Button
                       key={page}
@@ -390,8 +414,56 @@ export default function AdminPanel() {
                       {page}
                     </Button>
                   )
-                )}
+                )} */}
                 <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      const newStart = Math.max(paginationWindowStart - paginationWindowSize, 1);
+                      setPaginationWindowStart(newStart);
+                      setCurrentPage(newStart);
+                    }}
+                    disabled={paginationWindowStart === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+
+                  {Array.from(
+                    { length: Math.min(paginationWindowSize, totalPages - paginationWindowStart + 1) },
+                    (_, i) => {
+                      const page = paginationWindowStart + i;
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handlePageChange(page)}
+                        >
+                          {page}
+                        </Button>
+                      );
+                    }
+                  )}
+
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      const newStart = paginationWindowStart + paginationWindowSize;
+                      if (newStart <= totalPages) {
+                        setPaginationWindowStart(newStart);
+                        setCurrentPage(newStart);
+                      }
+                    }}
+                    disabled={paginationWindowStart + paginationWindowSize > totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+
+                {/* <Button
                   variant="outline"
                   size="icon"
                   className="h-8 w-8"
@@ -400,7 +472,7 @@ export default function AdminPanel() {
                 >
                   <ChevronRight className="h-4 w-4" />
                   <span className="sr-only">Next page</span>
-                </Button>
+                </Button> */}
               </div>
             </div>
           )}

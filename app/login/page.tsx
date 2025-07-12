@@ -2,6 +2,33 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+interface LoginResponse {
+  data: {
+    token: string;
+    brokerId: string | null;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      password: string;
+      createdAt: string;
+      updatedAt: string;
+      country_code: string | null;
+      w_number: string | null;
+      appleAccessToken: string | null;
+      appleId: string | null;
+      appleRefreshToken: string | null;
+      googleAccessToken: string | null;
+      googleId: string | null;
+      googleRefreshToken: string | null;
+      fcm_token: string | null;
+    };
+  };
+  message: string;
+  status: boolean;
+}
+
 export default function AdminLoginPage() {
   const router = useRouter();
 
@@ -14,33 +41,49 @@ export default function AdminLoginPage() {
     setError('');
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/login`, {
+      console.log('🚀 Sending login request...', { email, password });
 
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/login`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
       });
 
-      const result = await res.json();
+      console.log('🧾 Response status:', res.status);
+
+        let result: LoginResponse | null = null;
+        try {
+          result = await res.json();
+          console.log('✅ Parsed response JSON:', result);
+        } catch (jsonErr) {
+          console.error('❌ Failed to parse response as JSON:', jsonErr);
+          throw new Error('Invalid JSON from server');
+        }
+
 
       if (!res.ok) {
-        setError(result?.error || 'Login failed');
+        setError(result?.message || 'Login failed');
+        return;
+      }
+      if (!result || !res.ok) {
+        setError(result?.message || 'Login failed');
         return;
       }
 
-      const { token, user } = result.data;
+        const { token, user } = result.data;
 
-      if (user.role !== 'ADMIN') {
+      if (!user || user.role !== 'ADMIN') {
         setError('Access denied. Admins only.');
         return;
       }
 
       // Store token and redirect
       localStorage.setItem('token', token);
-      router.push('/listings'); // or wherever your admin panel is
+      router.push('/listings');
     } catch (err) {
+      console.error('❌ Login failed:', err);
       setError('Something went wrong. Try again.');
     }
   };

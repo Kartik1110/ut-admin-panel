@@ -2,9 +2,25 @@
 export interface Broker {
   id: string;
   name: string;
+  email: string;
+  info: string;
+  y_o_e: number;
+  languages: string[];
+  is_certified: boolean;
   profile_pic: string;
   country_code: string;
   w_number: string;
+  ig_link: string;
+  linkedin_link: string;
+  designation: string;
+  company_id: string;
+  user_id: string;
+  type: string;
+  updatedAt: string;
+  company: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 export interface Company {
@@ -92,3 +108,4 @@ export interface FormattedListing {
   payment_plan: string;
   sale_type: string;
 } 
+
